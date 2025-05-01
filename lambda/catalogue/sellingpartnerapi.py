@@ -4,6 +4,8 @@ import urllib3
 import re
 import json
 import os
+import time
+
 
 
 client_id = os.environ['client_id']
@@ -169,4 +171,72 @@ def get_access_token_production_de_fr():
 
     return response.json()
 
+
+def catalogue(id_vendeur, id_marketplace, jeton_acces_de_fr):
+    
+    compteur = 0
+    derniere_page_catalogue = False
+    
+    objets_catalogue = []
+    
+    headers_prod = {'Content-Type': 'application/json',
+ 'x-amz-access-token': jeton_acces_de_fr}
+    
+    type_jeton_page = ''
+    
+    jeton_page = ''
+    
+    while derniere_page_catalogue == False:
+        
+        compteur += 1
+        
+        print(compteur)
+        
+        url = 'https://sellingpartnerapi-eu.amazon.com/listings/2021-08-01/items/{id_vendeur}/?marketplaceIds={id_marketplace}&issueLocale =fr_Fr&pageSize=20'.format(id_vendeur = id_vendeur, id_marketplace = id_marketplace)
+        
+        if compteur > 1:
+            
+            url += '&pageToken={type_token_page}'.format(type_token_page = custom_url_encode_utf8(jeton_page))
+        
+        page_catalogue_reponse = request(method = "GET", url = url,
+                            headers=headers_prod,
+                            _preload_content=None,
+                            _request_timeout=None,
+                            query_params=None)
+        
+        
+        time.sleep(2)
+        
+        page_catalogue_reponse = json.loads(page_catalogue_reponse.data)
+        
+        pagination = page_catalogue_reponse['pagination']
+        type_jeton_page = list(pagination.keys())[0]
+        
+        print(type_jeton_page)
+        
+        page_catalogue = page_catalogue_reponse['items']
+        
+        if type_jeton_page == 'nextToken':
+            
+            jeton_page = pagination['nextToken']
+            
+            
+            if compteur == 1:
+                
+                objets_catalogue = page_catalogue
+                
+            else:
+                
+                objets_catalogue += page_catalogue
+                
+        else:
+            
+            objets_catalogue += page_catalogue
+            
+            derniere_page_catalogue = True
+            
+    return objets_catalogue
+
+def custom_url_encode_utf8(s):
+    return ''.join('%%%02X' % b for b in s.encode('utf-8'))
 
