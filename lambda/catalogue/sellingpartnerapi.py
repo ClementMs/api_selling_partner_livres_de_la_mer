@@ -5,6 +5,7 @@ import re
 import json
 import os
 import time
+import pandas
 
 
 
@@ -172,7 +173,7 @@ def get_access_token_production_de_fr():
     return response.json()
 
 
-def catalogue(id_vendeur, id_marketplace, jeton_acces_de_fr):
+def catalogue_extraction(id_vendeur, id_marketplace, jeton_acces_de_fr):
     
     compteur = 0
     derniere_page_catalogue = False
@@ -240,3 +241,26 @@ def catalogue(id_vendeur, id_marketplace, jeton_acces_de_fr):
 def custom_url_encode_utf8(s):
     return ''.join('%%%02X' % b for b in s.encode('utf-8'))
 
+def transformation_catalogue(catalogue_liste):
+    
+    compteur = 0
+    
+    for objet_dictionnaire in catalogue_liste:
+        
+        compteur += 1
+        
+        objet = pandas.DataFrame({'amazon_objet_id': objet_dictionnaire['sku'], 'marketplace_id': objet_dictionnaire['summaries'][0]['marketplaceId'],
+                                  'type': objet_dictionnaire['summaries'][0]['productType'], 'condition': objet_dictionnaire['summaries'][0]['conditionType'], 'status': objet_dictionnaire['summaries'][0]['status'], 
+                                 'nom': objet_dictionnaire['summaries'][0]['itemName'], 'date_creation': objet_dictionnaire['summaries'][0]['createdDate'], 'date_mise_a_jour': objet_dictionnaire['summaries'][0]['lastUpdatedDate'],
+                                 'lien_image': objet_dictionnaire['summaries'][0]['mainImage']['link']})
+        
+        if compteur == 1:
+            
+            catalogue = objet.copy()
+            
+        else:
+            
+            catalogue = pandas.concat([catalogue, objet.copy()])
+            
+            
+    return catalogue
